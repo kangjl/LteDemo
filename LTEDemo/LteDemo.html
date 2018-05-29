@@ -1,0 +1,403 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>Feature Layer - display results as an InfoWindow onHover</title>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/3.20/dijit/themes/tundra/tundra.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/3.20/esri/css/esri.css">
+    <style>
+        html, body, #mapDiv {
+            padding:0;
+            margin:0;
+            height:100%;
+        }
+        #mapDiv {
+            position: relative;
+        }
+        #info {
+            background: #fff;
+            box-shadow: 0 0 5px #888;
+            left: 1em;
+            padding: 0.5em;
+            position: absolute;
+            top: 1em;
+            z-index: 40;
+        }
+    </style>
+
+    <script src="https://js.arcgis.com/3.20/"></script>
+    <script>
+        var map, dialog;
+        require([
+                    "dojo/ready",
+                    "dojo/has",
+                    "esri/layers/ArcGISTiledMapServiceLayer",
+                    "esri/layers/FeatureLayer",
+                    "esri/layers/LabelLayer",
+                    "esri/layers/LabelClass",
+                    "esri/symbols/TextSymbol",
+                    "esri/symbols/PictureMarkerSymbol",
+                    "esri/renderers/SimpleRenderer",
+                    "esri/symbols/Font",
+                    "esri/layers/ArcGISDynamicMapServiceLayer",
+                    "esri/tasks/FeatureSet",
+                    "esri/geometry/Point",
+                    "esri/SpatialReference",
+                    "esri/tasks/QueryTask",
+                    "esri/tasks/query",
+                    "esri/toolbars/draw",
+                    "esri/symbols/SimpleMarkerSymbol",
+                    "esri/symbols/SimpleLineSymbol",
+                    "esri/symbols/SimpleFillSymbol",
+                    "esri/InfoTemplate",
+                    "esri/graphic",
+                    "esri/layers/GraphicsLayer",
+                    "dijit/TooltipDialog", "dijit/popup",
+                    "esri/Color",
+                    "esri/map",
+                    "esri/geometry/Circle",
+                    "dojo/store/Memory",
+                    "dojo/on",
+                    "dojo/dom",
+                    "dojox/json/ref",
+                    "dojo/domReady!"
+                ],
+                function (ready,has,ArcGISTiledMapServiceLayer,FeatureLayer,LabelLayer,LabelClass,TextSymbol,PictureMarkerSymbol,SimpleRenderer,Font,ArcGISDynamicMapServiceLayer,FeatureSet,Point,SpatialReference,QueryTask,Query,Draw,SimpleMarkerSymbol,SimpleLineSymbol,SimpleFillSymbol,InfoTemplate,Graphic,GraphicsLayer,TooltipDialog, dijitPopup,Color,Map,Circle,Memory,on,dom){
+            /* 声明map；*/
+            map = new Map("mapDiv", {
+                center: [116.433,39.999],
+                zoom: 5,
+                showLabels : true,
+                showAttribution: true,
+                slider: "small"
+            });
+                    var showCircleLayer=new GraphicsLayer();
+
+                    var showprovCircleLayer=new GraphicsLayer();
+                    /*添加切片底图*/
+                    var myServiceURL = "http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer";
+                    var myLayer = new ArcGISTiledMapServiceLayer(myServiceURL);
+                    map.addLayer(myLayer);
+                    var pointlayer = new ArcGISDynamicMapServiceLayer("http://60.10.25.220:6080/HHHLT/rest/services/LTQD/MapServer");
+                    map.addLayer(pointlayer);
+            on(map,"extent-change",function(e){
+                if(map.getLevel()<6){
+                    showCircleLayer.clear();
+                    county.hide();
+
+                    showprovCircleLayer.show();
+                    showCircleLayer.hide();
+                    prov.show();
+                    //getprov();
+                    queryprovLayerCircle(e.target.geographicExtent)
+                    pointlayer.hide();
+                }
+                if(map.getLevel()>6){
+                    queryLayerCircle(e.target.geographicExtent);
+                    showprovCircleLayer.clear();
+                    prov.hide();
+                    showprovCircleLayer.hide();
+                    showCircleLayer.show();
+                    county.show();
+                    //getcounty();
+                    pointlayer.hide();
+                }
+                if(map.getLevel()>9){
+                    prov.hide();
+                    county.hide();
+                    pointlayer.show();
+                      showCircleLayer.clear();
+                    showprovCircleLayer.hide();
+                    showCircleLayer.hide();
+                   }
+
+             });
+
+
+
+                    //区域面图层渲染
+         var prov = new FeatureLayer("http://60.10.25.220:6080/HHHLT/rest/services/LTQDCOUNT/MapServer/1", {
+                 mode: FeatureLayer.MODE_SNAPSHOT,
+                outFields: ["*"]
+             });
+       //区域面图层渲染
+         var county = new FeatureLayer("http://60.10.25.220:6080/HHHLT/rest/services/LTQDCOUNT/MapServer/0", {
+                        mode: FeatureLayer.MODE_SNAPSHOT,
+                        outFields: ["*"]
+                    });
+        getprov();
+		getcounty();
+       function getprov(){
+           prov.show();
+                    prov.setDefinitionExpression("1=1");
+                        var symbol = new SimpleFillSymbol(
+                            SimpleFillSymbol.STYLE_SOLID,
+                            new SimpleLineSymbol(
+                                SimpleLineSymbol.STYLE_SOLID,
+                                new Color([125,125,125,1]),
+                                1
+                            ),
+                            new Color([125,125,125,1])
+                        );
+                        //高亮显示
+                        var highlightSymbol = new SimpleFillSymbol(
+                            SimpleFillSymbol.STYLE_SOLID,
+                            new SimpleLineSymbol(
+                                SimpleLineSymbol.STYLE_SOLID,
+                                new Color([0,255,0]), 2
+                            ),
+                            new Color([0,0,0,0.1])
+                        );
+           prov.setRenderer(new SimpleRenderer(highlightSymbol));
+                        map.addLayer(prov);
+                        map.infoWindow.resize(245,125);
+
+
+                        map.on("load", function(){
+                            map.graphics.enableMouseEvents();
+                            map.graphics.on("mouse-out", clear);
+                        });
+
+           prov.on("mouse-over", function(evt){
+                            //var content = esriLang.substitute(evt.graphic.attributes);
+                            var highlightGraphic = new Graphic(evt.graphic.geometry,highlightSymbol);
+                            map.graphics.add(highlightGraphic);
+
+                        });
+                    }
+         function getcounty(){
+             county.clear();
+             county.show();
+             county.setDefinitionExpression("1=1");
+             var symbol = new SimpleFillSymbol(
+                 SimpleFillSymbol.STYLE_SOLID,
+                 new SimpleLineSymbol(
+                     SimpleLineSymbol.STYLE_SOLID,
+                     new Color([125,125,125,1]),
+                     1
+                 ),
+                 new Color([125,125,125,1])
+             );
+             //高亮显示
+             var highlightSymbol = new SimpleFillSymbol(
+                 SimpleFillSymbol.STYLE_SOLID,
+                 new SimpleLineSymbol(
+                     SimpleLineSymbol.STYLE_SOLID,
+                     new Color([0,255,0]), 2
+                 ),
+                 new Color([0,0,0,0.1])
+             );
+             county.setRenderer(new SimpleRenderer(highlightSymbol));
+             map.addLayer(county);
+             map.infoWindow.resize(245,125);
+
+
+             map.on("load", function(){
+                 map.graphics.enableMouseEvents();
+                 map.graphics.on("mouse-out", clear);
+             });
+
+             county.on("mouse-over", function(evt){
+                 //var content = esriLang.substitute(evt.graphic.attributes);
+                 var highlightGraphic = new Graphic(evt.graphic.geometry,highlightSymbol);
+                 map.graphics.add(highlightGraphic);
+
+             });
+         }
+
+            //清楚高亮
+            function clear() {
+                map.graphics.clear();
+            }
+           //园的点击事件
+            map.on("click", function(evt){
+                if(evt.graphic.geometry.type=="polygon"){
+                    if(map.getZoom()<7){
+                        map.graphics.clear();
+                        map.centerAndZoom(evt.mapPoint,9);
+                        showCircleLayer.setVisibility(true);
+                        county.setVisibility(true);
+
+                        showprovCircleLayer.setVisibility(false);
+                        prov.setVisibility(false);
+                    }else{
+                        pointlayer.setVisibility(true);
+                        map.graphics.clear();
+                        map.centerAndZoom(evt.mapPoint,14);
+                        showCircleLayer.setVisibility(false);
+                        county.setVisibility(false);
+
+                    }
+                }
+            });
+
+                    //圆形渲染
+                    function queryprovLayerCircle(extent){
+                        var layerurl="http://60.10.25.220:6080/HHHLT/rest/services/LTQDCOUNT/MapServer/1";
+                        var query = new Query();
+                        var queryTask = new QueryTask(layerurl);
+                        query.where = "1=1";
+                        // query.geometry =extent;
+                        query.outSpatialReference = {wkid:4326,extent:extent};
+                        query.returnGeometry = true;
+                        query.outFields = ["*"];
+                        queryTask.execute(query, showprovResultsCircle);
+
+                    }
+                    function showprovResultsCircle(results) {
+                        showprovCircleLayer.clear();
+                        for (var i = 0; i < results.features.length; i++) {
+                            var graphic = results.features[i];
+                            var cpoint = graphic.geometry.getCentroid();//获取多边形中心点
+                            var circleGeometry = new Circle(cpoint, {
+                                crenter: cpoint,
+                                "radius": 15000,
+                                geodesic: true
+                            });
+                            var symbol = new PictureMarkerSymbol("image/RedPin1LargeB.png", 90, 90);
+//                            var font = new esri.symbol.Font();
+//                            font.setSize("10pt");
+//                            font.setFamily("微软雅黑");
+//                            font.setStyle({color: "#337ab7"});
+//                            var text = new esri.symbol.TextSymbol(graphic.attributes.COUNT);
+//                            text.setFont(font);
+//                            text.setColor(new dojo.Color("#000000"));
+//                            text.setOffset(20, -35);
+
+                            var text = new Graphic(cpoint);
+                            count = graphic.attributes.COUNT;
+                            if (count) {
+								var font = new esri.symbol.Font();
+								 font.setSize("12pt");
+								  font.setFamily("Arial");
+								 font.setStyle({color: "#000"});
+                                var label = new TextSymbol(count)
+                                    .setColor(new Color("#fff"))
+                                    .setOffset(0, -3)
+									.setFont(font);
+                                text.setSymbol(label);
+
+                            }
+
+                            //高亮显示
+                            var highCircle = new SimpleFillSymbol(
+                                SimpleFillSymbol.STYLE_SOLID,
+                                new SimpleLineSymbol(
+                                    SimpleLineSymbol.STYLE_SOLID,
+                                    new Color([0, 255, 51]), 2
+                                ),
+                                new Color([0, 255, 51, 2])
+                            );
+                            var graphic = new Graphic(cpoint, symbol);
+                            var labelGraphic = new Graphic(cpoint, text);
+                            graphic.setAttributes({"type": "圆"});
+
+                            showprovCircleLayer.add(graphic);
+                            showprovCircleLayer.add(text);
+                            //showCircleLayer.add(labelGraphic);
+                            showprovCircleLayer.showAttribution = true;
+                            map.addLayer(showprovCircleLayer);
+                        }
+
+                    }
+              //圆形渲染
+              function queryLayerCircle(extent){
+                  var layerurl="http://60.10.25.220:6080/HHHLT/rest/services/LTQDCOUNT/MapServer/0";
+                  var query = new Query();
+                  var queryTask = new QueryTask(layerurl);
+                  query.where = "1=1";
+                  // query.geometry =extent;
+                  query.outSpatialReference = {wkid:4326,extent:extent};
+                  query.returnGeometry = true;
+                  query.outFields = ["*"];
+                  queryTask.execute(query, showResultsCircle);
+
+              }
+              function showResultsCircle(results) {
+                  showCircleLayer.clear();
+                  for (var i = 0; i < results.features.length; i++) {
+                      var graphic = results.features[i];
+                      var cpoint = graphic.geometry.getCentroid();//获取多边形中心点
+                      var circleGeometry = new Circle(cpoint, {
+                          crenter: cpoint,
+                          "radius": 15000,
+                          geodesic: true
+                      });
+                      var symbol = new PictureMarkerSymbol("image/RedPin1LargeB.png", 80, 80);
+                      var text = new Graphic(cpoint);
+                      count = graphic.attributes.COUNT;
+                      if (count) {
+						  var font = new esri.symbol.Font();
+								 font.setSize("12pt");
+								  font.setFamily("Arial");
+								 font.setStyle({color: "#000"});
+                          var label = new TextSymbol(count)
+                              .setColor(new Color("#fff"))
+                              .setOffset(0, -3)
+							  .setFont(font);
+                          text.setSymbol(label);
+
+                      }
+                      var graphic = new Graphic(cpoint, symbol);
+                      var labelGraphic = new Graphic(cpoint, text);
+                      graphic.setAttributes({"type": "圆"});
+
+                      showCircleLayer.add(graphic);
+                      showCircleLayer.add(text);
+                      showCircleLayer.showAttribution = true;
+                      map.addLayer(showCircleLayer);
+                  }
+
+              }
+
+//            county.on("mouse-over", function(evt){
+//                        //var content = esriLang.substitute(evt.graphic.attributes);
+//                        var highlightGraphic = new Graphic(evt.graphic.geometry,highlightSymbol);
+//                        map.graphics.add(highlightGraphic);
+//                });
+            //园高亮显示
+               showCircleLayer.on("mouse-over", function(evt){
+                 //高亮显示
+                 var highCircle = new SimpleFillSymbol(
+                         SimpleFillSymbol.STYLE_SOLID,
+                         new SimpleLineSymbol(
+                                 SimpleLineSymbol.STYLE_SOLID,
+                                 new Color([255,0,0]), 10
+                         ),
+                         new Color([255,0,0,10])
+                 );
+                 //var content = esriLang.substitute(evt.graphic.attributes);
+                 var highlightGraphic = new Graphic(evt.graphic.geometry,highCircle);
+                 map.graphics.add(highlightGraphic);
+
+             });
+                    //园高亮显示
+              showprovCircleLayer.on("mouse-over", function(evt){
+                        //高亮显示
+                        var highCircle = new SimpleFillSymbol(
+                            SimpleFillSymbol.STYLE_SOLID,
+                            new SimpleLineSymbol(
+                                SimpleLineSymbol.STYLE_SOLID,
+                                new Color([255,0,0]), 10
+                            ),
+                            new Color([255,0,0,10])
+                        );
+                        //var content = esriLang.substitute(evt.graphic.attributes);
+                        var highlightGraphic = new Graphic(evt.graphic.geometry,highCircle);
+                        map.graphics.add(highlightGraphic);
+
+                    });
+
+        });
+    </script>
+</head>
+<body class="tundra">
+<div style="position: absolute;z-index: 999;margin:0 auto;width:100%;text-align: center;"><p style="width: 300px;border-radius:0 0 10px 10px;font-size:22px;margin:0 auto;background-color: #d6141c;color:#fff;padding: 10px 0">电子沙盘</p></div>
+<div id="mapDiv">
+
+</div>
+</body>
+</html>
