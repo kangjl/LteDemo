@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>中国行政区划</title>
+<link href="../css/main.css" rel="stylesheet">
+<link href="../css/style.css" rel="stylesheet">
+<script src="../js/echarts.min.js"></script>
+    <style>html,body{ background:transparent !important;}</style>
+</head>
+
+<body style="background-color: #fff;">
+	<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+    <div id="main"  class="charts-h612" ></div>
+    <script type="text/javascript">
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('main'));
+        var count=0;
+        // 指定图表的配置项和数据
+        var option = {
+         title : {
+            text: '中国行政区划',
+            x:'center',
+             textStyle:{
+                    fontWeight:'normal'
+                }
+        },
+			color : ['pink','#15a1df'],
+			tooltip : {
+				trigger: 'axis'
+			},
+			toolbox: {
+				show: true,
+				orient: 'horizontal',
+				left: 'right',
+				top: 'top',
+				feature: {
+					dataView: {readOnly: false},
+					restore: {},
+					saveAsImage: {}
+				}
+			},
+			calculable : true,
+			xAxis : [
+				{
+					type : 'category',
+					  axisLabel: {
+                        interval: 0,
+                        rotate: 45,
+                        margin: 2
+                    },
+                    data : ['食品加工', '食品制造', '饮料制造', '烟草加工', '纺织业', '服装制造'],
+					splitLine:{
+						show : false
+					}
+				}
+			],
+			yAxis : [
+				{
+					type : 'value',
+					name : '单位（个）',
+					min : 0,
+					max : 100,
+					splitLine:{
+						lineStyle:{
+							color : 'red'
+						}
+					}
+					
+					
+				}
+			],
+			series : [
+				{
+					name:'2014年',
+					type:'bar',
+					data:[52, 82, 46, 52, 28, 50],
+					markPoint: {
+
+						symbolSize:[82,144],
+						label:{
+							normal:{
+								show:true,
+								formatter:'2015年\n92\n\n\n\n\n\n\n\n',
+								textStyle:{
+									color:'#fff'
+								}
+							}
+						},
+						data:[
+							{name : '年最高', value : 92, xAxis: 18, yAxis: 82}
+						]
+					}
+				},
+				{
+					name:'2015年',
+					type:'bar',
+					data:[62, 72, 86, 52, 68, 70]
+				}
+			]
+		};
+        window.onresize = myChart.resize;
+        // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
+        var option2 = {
+            title : {
+                text: '数据切换',
+                x:'center',
+                textStyle:{
+                    fontWeight:'normal'
+                }
+            },
+            color : ['pink','#15a1df'],
+            tooltip : {
+                trigger: 'axis'
+            },
+            toolbox: {
+                show: true,
+                orient: 'horizontal',
+                left: 'right',
+                top: 'top',
+                feature: {
+                    dataView: {readOnly: false},
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            calculable : true,
+            xAxis : [
+                {
+                    type : 'category',
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 45,
+                        margin: 2
+                    },
+                    data : ['食品加工', '食品制造', '饮料制造', '烟草加工', '纺织业', '服装制造', '纺织业', '服装制造', '纺织业'],
+                    splitLine:{
+                        show : false
+                    }
+                }
+            ],
+            yAxis : [
+                {
+                    type : 'value',
+                    name : '单位（个）',
+                    min : 0,
+                    max : 100,
+                    splitLine:{
+                        lineStyle:{
+                            color : 'red'
+                        }
+                    }
+
+
+                }
+            ],
+            series : [
+                {
+                    name:'2014年',
+                    type:'bar',
+                    data:[52, 82, 46, 52, 28, 50,52, 28, 56],
+                    markPoint: {
+
+                        symbolSize:[82,144],
+                        label:{
+                            normal:{
+                                show:true,
+                                formatter:'2015年\n92\n\n\n\n\n\n\n\n',
+                                textStyle:{
+                                    color:'#fff'
+                                }
+                            }
+                        },
+                        data:[
+                            {name : '年最高', value : 92, xAxis: 18, yAxis: 82}
+                        ]
+                    }
+                },
+                {
+                    name:'2015年',
+                    type:'bar',
+                    data:[62, 72, 86, 52, 68, 70, 41, 21, 32]
+                }
+            ]
+        };
+        function qiehuan(name){
+            // 数据切换
+            if(count==0){
+                window.onresize = myChart.resize;
+                // 使用刚指定的配置项和数据显示图表。
+
+                option.title.text= name;
+                myChart.setOption(option);
+                count=1;
+            }else{
+                window.onresize = myChart.resize;
+                option2.title.text= name;
+                // 使用刚指定的配置项和数据显示图表。
+                myChart.setOption(option2);
+                count=0;
+            }
+
+        }
+
+    </script>
+
+</body>
+</html>
